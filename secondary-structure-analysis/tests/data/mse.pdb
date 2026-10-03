@@ -1,0 +1,18 @@
+REMARK   Synthetic MSE fixture for ssa tests (not a real structure).
+REMARK   Internal MSE encoded as HETATM (H_MSE) with a full backbone must be
+REMARK   retained and mapped to M; the trailing HOH must be dropped.
+ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
+ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
+ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
+ATOM      4  O   ALA A   1       1.251   2.390   0.000  1.00  0.00           O
+HETATM    5  N   MSE A   2       3.332   1.540   0.000  1.00  0.00           N
+HETATM    6  CA  MSE A   2       4.000   2.840   0.000  1.00  0.00           C
+HETATM    7  C   MSE A   2       5.510   2.720   0.000  1.00  0.00           C
+HETATM    8  O   MSE A   2       6.000   1.600   0.000  1.00  0.00           O
+ATOM      9  N   GLY A   3       6.200   3.850   0.000  1.00  0.00           N
+ATOM     10  CA  GLY A   3       7.650   3.900   0.000  1.00  0.00           C
+ATOM     11  C   GLY A   3       8.200   5.320   0.000  1.00  0.00           C
+ATOM     12  O   GLY A   3       7.450   6.290   0.000  1.00  0.00           O
+HETATM   13  O   HOH A   4      20.000  20.000  20.000  1.00  0.00           O
+TER      14      GLY A   3
+END

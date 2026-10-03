@@ -1,0 +1,22 @@
+REMARK   Synthetic two-model fixture for ssa --model tests (not a real structure).
+MODEL        1
+ATOM      1  N   ALA A   1       0.000   0.000   0.000  1.00  0.00           N
+ATOM      2  CA  ALA A   1       1.458   0.000   0.000  1.00  0.00           C
+ATOM      3  C   ALA A   1       2.009   1.420   0.000  1.00  0.00           C
+ATOM      4  O   ALA A   1       1.251   2.390   0.000  1.00  0.00           O
+ATOM      5  N   GLY A   2       3.332   1.540   0.000  1.00  0.00           N
+ATOM      6  CA  GLY A   2       4.000   2.840   0.000  1.00  0.00           C
+ATOM      7  C   GLY A   2       5.510   2.720   0.000  1.00  0.00           C
+ATOM      8  O   GLY A   2       6.000   1.600   0.000  1.00  0.00           O
+ENDMDL
+MODEL        2
+ATOM      1  N   ALA A   1       0.100   0.000   0.000  1.00  0.00           N
+ATOM      2  CA  ALA A   1       1.558   0.000   0.000  1.00  0.00           C
+ATOM      3  C   ALA A   1       2.109   1.420   0.000  1.00  0.00           C
+ATOM      4  O   ALA A   1       1.351   2.390   0.000  1.00  0.00           O
+ATOM      5  N   GLY A   2       3.432   1.540   0.000  1.00  0.00           N
+ATOM      6  CA  GLY A   2       4.100   2.840   0.000  1.00  0.00           C
+ATOM      7  C   GLY A   2       5.610   2.720   0.000  1.00  0.00           C
+ATOM      8  O   GLY A   2       6.100   1.600   0.000  1.00  0.00           O
+ENDMDL
+END

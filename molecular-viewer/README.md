@@ -6,6 +6,9 @@ An interactive 3D protein structure viewer that runs in the browser. Part of the
 Built with React + Vite + TypeScript; rendering is done by
 [3Dmol.js](https://3dmol.org/) (WebGL).
 
+**Live demo:** <https://main.d162l9aqc0o2mt.amplifyapp.com/> (hosted on AWS
+Amplify, rebuilt automatically on every push to `main`).
+
 ## Features
 
 - **Load a structure** three ways:

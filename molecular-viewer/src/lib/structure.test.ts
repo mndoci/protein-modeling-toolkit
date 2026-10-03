@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import CRAMBIN from '../assets/1CRN.pdb?raw';
+import CRAMBIN from '../assets/samples/1CRN.pdb?raw';
 import {
   StructureParseError,
   detectFormat,

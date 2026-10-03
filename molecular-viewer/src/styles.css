@@ -1,8 +1,45 @@
 :root {
+  --bg: #f4f5f7;
+  --text: #1a1a1a;
+  --muted: #5b6475;
+  --panel-bg: #ffffff;
+  --border: #d0d5dd;
+  --input-border: #8a94a6;
+  --input-bg: #ffffff;
+  --accent: #1f3a5f;
+  --accent-text: #ffffff;
+  --header-bg: #1f3a5f;
+  --header-text: #ffffff;
+  --header-muted: #d6e2f0;
+  --error-bg: #fdecea;
+  --error-text: #8a1c13;
+  --error-border: #f5c2bc;
+  --focus: #f5a623;
+  color-scheme: light;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  color: #1a1a1a;
-  background: #f4f5f7;
+  color: var(--text);
+  background: var(--bg);
   line-height: 1.4;
+}
+
+:root[data-theme='dark'] {
+  --bg: #0b1118;
+  --text: #e6eaf0;
+  --muted: #9aa5b4;
+  --panel-bg: #141c26;
+  --border: #2b3645;
+  --input-border: #56657a;
+  --input-bg: #0f1720;
+  --accent: #4e9af1;
+  --accent-text: #08111c;
+  --header-bg: #0f1720;
+  --header-text: #f1f5f9;
+  --header-muted: #9aa5b4;
+  --error-bg: #3a1a1a;
+  --error-text: #ffb4ab;
+  --error-border: #6b2f2b;
+  --focus: #ffc94d;
+  color-scheme: dark;
 }
 
 * {
@@ -21,8 +58,13 @@ body {
 
 .app-header {
   padding: 0.75rem 1.25rem;
-  background: #1f3a5f;
-  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  background: var(--header-bg);
+  color: var(--header-text);
+  border-bottom: 1px solid var(--border);
 }
 
 .app-header h1 {
@@ -33,7 +75,7 @@ body {
 .subtitle {
   margin: 0.15rem 0 0;
   font-size: 0.85rem;
-  color: #d6e2f0;
+  color: var(--header-muted);
 }
 
 .layout {
@@ -57,8 +99,8 @@ body {
 }
 
 .panel {
-  background: #fff;
-  border: 1px solid #d0d5dd;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.9rem 1rem;
   display: flex;
@@ -87,17 +129,19 @@ button {
 input[type='text'],
 select {
   padding: 0.35rem 0.5rem;
-  border: 1px solid #8a94a6;
+  border: 1px solid var(--input-border);
+  background: var(--input-bg);
+  color: var(--text);
   border-radius: 4px;
   width: 100%;
 }
 
 button {
   padding: 0.4rem 0.8rem;
-  border: 1px solid #1f3a5f;
+  border: 1px solid var(--accent);
   border-radius: 4px;
-  background: #1f3a5f;
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-text);
   cursor: pointer;
   margin-top: 0.4rem;
 }
@@ -108,7 +152,7 @@ button:disabled {
 }
 
 :focus-visible {
-  outline: 3px solid #f5a623;
+  outline: 3px solid var(--focus);
   outline-offset: 2px;
 }
 
@@ -126,9 +170,9 @@ button:disabled {
   margin: 0;
   padding: 0.6rem 0.8rem;
   border-radius: 6px;
-  background: #fdecea;
-  color: #8a1c13;
-  border: 1px solid #f5c2bc;
+  background: var(--error-bg);
+  color: var(--error-text);
+  border: 1px solid var(--error-border);
 }
 
 .info-list {
@@ -161,16 +205,20 @@ button:disabled {
 
 .chain-table th,
 .chain-table td {
-  border: 1px solid #d0d5dd;
+  border: 1px solid var(--border);
   padding: 0.2rem 0.5rem;
   text-align: left;
 }
 
 .viewer-frame {
-  position: relative;
+  position: sticky;
+  top: 1rem;
+  align-self: start;
+  /* Fill the window below the header so the whole molecule is in view. */
+  height: calc(100vh - 8rem);
   min-height: 480px;
-  background: #fff;
-  border: 1px solid #d0d5dd;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   overflow: hidden;
 }
@@ -187,11 +235,42 @@ button:disabled {
   left: 50%;
   transform: translate(-50%, -50%);
   margin: 0;
-  color: #5b6475;
+  color: var(--muted);
   pointer-events: none;
   z-index: 1;
 }
 
 .viewer-error {
-  color: #8a1c13;
+  color: var(--error-text);
+}
+
+
+.hint {
+  margin: 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.check {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+}
+
+.check label {
+  margin-top: 0;
+  font-weight: 500;
+}
+
+.theme-toggle {
+  margin-top: 0;
+  background: transparent;
+  color: var(--header-text);
+  border-color: var(--header-muted);
+}
+
+.theme-toggle[aria-checked='true'] {
+  background: var(--header-text);
+  color: var(--header-bg);
 }

@@ -4,7 +4,12 @@ import { vi } from 'vitest';
 export const viewerMock = {
   addModel: vi.fn(),
   setStyle: vi.fn(),
+  addStyle: vi.fn(),
+  setViewStyle: vi.fn(),
+  setBackgroundColor: vi.fn(),
   zoomTo: vi.fn(),
+  rotate: vi.fn(),
+  setView: vi.fn(),
   render: vi.fn(),
   removeAllModels: vi.fn(),
   resize: vi.fn(),

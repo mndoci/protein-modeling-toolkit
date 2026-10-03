@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Secondary Structure Analysis: pure-Python per-residue H/E/C assignment from PDB/mmCIF (no DSSP binary required)."
 readme = "README.md"
 requires-python = ">=3.9"
-license = { text = "MIT" }
+license = { text = "Apache-2.0" }
 authors = [{ name = "protein-modeling-toolkit" }]
 keywords = ["protein", "secondary-structure", "dssp", "pdb", "mmcif", "bioinformatics"]
 

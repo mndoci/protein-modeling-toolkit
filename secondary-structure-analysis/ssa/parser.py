@@ -81,18 +81,28 @@ def _pick_parser(path: str):
     return PDBParser(QUIET=True)
 
 
-def load_structure(path: str, model_index: int = 0) -> Structure:
+def load_structure(path: str, model_index: int = 0, structure_id: Optional[str] = None) -> Structure:
     """Parse ``path`` (PDB or mmCIF) into a :class:`Structure`.
 
-    Only the first model is used by default (NMR ensembles have many).
-    Water and hetero residues are skipped; only standard amino acids
-    (per Biopython's :func:`is_aa`, ``standard=True``) are retained.
+    Only one model is used (NMR ensembles have many); ``model_index`` selects
+    which, and an out-of-range or negative index raises :class:`ValueError`
+    reporting the valid range rather than silently clamping.
+
+    Retained residues are amino acids (per Biopython's :func:`is_aa` with
+    ``standard=False``, so common modified residues such as selenomethionine
+    ``MSE`` are kept) whose normalized three-letter name is in the supported
+    mapping and that carry a usable backbone. Water, ligands, and other
+    non-amino-acid HETATM residues are skipped.
+
+    ``structure_id`` overrides the id derived from the filename (used by the
+    CLI so a ``--fetch`` temp file still reports its PDB id).
     """
     if not os.path.isfile(path):
         raise FileNotFoundError(path)
 
     parser = _pick_parser(path)
-    structure_id = os.path.splitext(os.path.basename(path))[0]
+    if structure_id is None:
+        structure_id = os.path.splitext(os.path.basename(path))[0]
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # silence Biopython construction warnings
         bio = parser.get_structure(structure_id, path)
@@ -100,19 +110,28 @@ def load_structure(path: str, model_index: int = 0) -> Structure:
     models = list(bio)
     if not models:
         raise ValueError(f"No models found in {path!r}")
-    model = models[min(model_index, len(models) - 1)]
+    if model_index < 0 or model_index >= len(models):
+        raise ValueError(
+            f"model index {model_index} out of range: "
+            f"file {path!r} has {len(models)} model(s) (valid 0..{len(models) - 1})"
+        )
+    model = models[model_index]
 
     result = Structure(structure_id=structure_id)
     for bio_chain in model:
         chain = Chain(chain_id=bio_chain.id)
         for bio_res in bio_chain:
-            # Keep only standard amino acids; skip water/hetero/ligands.
+            # Amino acids only (standard=False also admits modified residues
+            # like MSE); skip water/ligands/other HETATM.
             if not is_aa(bio_res, standard=False):
                 continue
-            hetflag, seq_id, icode = bio_res.id
-            if hetflag.strip():  # HETATM residue (e.g. water) -> skip
-                continue
             resname = bio_res.resname.strip().upper()
+            # A modified amino acid (HETATM, e.g. MSE) is retained only when
+            # its normalized name is one we can map; unmapped HETATM residues
+            # (ligands, cofactors) are dropped even if is_aa admits them.
+            hetflag, seq_id, icode = bio_res.id
+            if hetflag.strip() and resname not in _THREE_TO_ONE:
+                continue
             one = _THREE_TO_ONE.get(resname, "X")
             res = Residue(
                 chain_id=bio_chain.id,

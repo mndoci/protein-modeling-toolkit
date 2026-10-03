@@ -3,8 +3,14 @@
 A Python command-line tool that reads a protein structure file (**PDB**, and
 **mmCIF** where Biopython supports it) and outputs **per-residue secondary
 structure assignments** — helix / sheet / coil (3-state `H` / `E` / `C`,
-derived from an 8-state DSSP-style classification) — plus **summary
+derived from a DSSP-style per-residue classification) — plus **summary
 statistics** (percent and count of helix / sheet / coil).
+
+The per-residue codes computed are `H` (α-helix), `G` (3₁₀-helix),
+`I` (π-helix), `E` (β-strand), `B` (β-bridge), and coil (`-`). DSSP's
+turn (`T`) and bend (`S`) states are **not** computed; those residues are
+reported as coil, and since `H/G/I → H`, `E/B → E`, and `T/S/- → C`, the
+3-state `H`/`E`/`C` output is unaffected by their absence.
 
 This is the first tool in the **protein-modeling-toolkit**.
 
@@ -18,9 +24,11 @@ electrostatic H-bond model DSSP uses:
 E = q1·q2·f·(1/r(O,N) + 1/r(C,H) − 1/r(O,H) − 1/r(C,N))   kcal/mol
 ```
 
-An H-bond is counted when `E < −0.5 kcal/mol`. From the resulting H-bond map
-the tool detects n-turns (3/4/5), α/3₁₀/π helices, and β bridges/strands, emits
-an 8-state code (`H G I E B T S -`), and collapses it to 3-state:
+An H-bond is counted when `E < −0.5 kcal/mol` (energies are clamped to a −9.9
+floor and capped at the two lowest per donor and per acceptor, as DSSP does).
+From the resulting H-bond map the tool detects n-turns (3/4/5), α/3₁₀/π helices,
+and β bridges/ladders, producing per-residue codes `H G I E B` plus coil (`-`)
+— DSSP's `T`/`S` are not computed — and collapses them to 3-state:
 
 | 8-state | meaning        | 3-state |
 |---------|----------------|---------|
@@ -186,11 +194,16 @@ and that the known helix/sheet content of crambin is recovered.
 
 ## Limitations
 
-- Strand detection reports H-bonded β bridges/strands; it is more conservative
-  than DSSP's full ladder/sheet bookkeeping, so exposed edge strands may read as
-  bridges. The 3-state `H`/`E`/`C` output is the tool's primary, validated
-  product.
-- `T` (turn) and `S` (bend) are not separately emitted; those residues report as
-  coil, consistent with the 3-state collapse.
+- Strand detection builds DSSP-style ladders from β bridges: residues in a
+  ladder (≥2 compatible consecutive bridges) are `E`, and an isolated bridge is
+  `B`. Ladder joining across β-bulges is not implemented, so a bulged sheet may
+  read as two shorter ladders. The 3-state `H`/`E`/`C` output is the tool's
+  primary, validated product.
+- `T` (turn) and `S` (bend) are not computed; those residues report as coil,
+  which collapses to `C` and so does not change the 3-state output.
 - Optional DSSP-binary backend is not wired in (the environment has no
   `mkdssp`); the pure-Python path is the only backend.
+
+## License
+
+Apache License 2.0 — see the [`LICENSE`](../LICENSE) file at the repository root.

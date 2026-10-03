@@ -62,9 +62,13 @@ class SSResult:
         return "".join(r.ss3 for r in self.residues)
 
 
-def analyze(path: str, model_index: int = 0) -> SSResult:
-    """Parse ``path``, assign secondary structure, and return an SSResult."""
-    structure = load_structure(path, model_index=model_index)
+def analyze(path: str, model_index: int = 0, structure_id: str = None) -> SSResult:
+    """Parse ``path``, assign secondary structure, and return an SSResult.
+
+    ``structure_id`` overrides the id derived from the filename (used by the
+    CLI so a ``--fetch`` temp file reports its PDB id rather than the temp name).
+    """
+    structure = load_structure(path, model_index=model_index, structure_id=structure_id)
     codes8 = assign_secondary_structure(structure)
     residues = structure.residues
     result = SSResult(structure_id=structure.structure_id)

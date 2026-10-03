@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "Browser-based 3D protein structure viewer (React + Vite + 3Dmol.js). Part of protein-modeling-toolkit.",
   "type": "module",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "engines": {
     "node": ">=22.12"
   },

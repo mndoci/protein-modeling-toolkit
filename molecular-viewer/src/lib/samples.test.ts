@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { SAMPLES, findSample, loadSampleText } from './samples';
+import { SAMPLES, findSample, loadSampleText, sampleThumbnail } from './samples';
 import { parseStructure } from './structure';
 
 /**
@@ -41,10 +41,31 @@ describe('sample catalogue', () => {
   });
 
   it('finds samples by ID', () => {
-    expect(findSample('4HHB')?.name).toBe('hemoglobin');
+    expect(findSample('4HHB')?.name).toBe('Hemoglobin');
     expect(findSample('NOPE')).toBeUndefined();
   });
+
+  it('gives every sample a short menu tagline and a bundled preview image', () => {
+    for (const s of SAMPLES) {
+      expect(s.tagline.length).toBeGreaterThan(5);
+      expect(s.tagline.length).toBeLessThanOrEqual(32); // one line in the menu
+      expect(sampleThumbnail(s.id)).toMatch(new RegExp(`${s.id}.*\\.jpg|^data:image/jpeg`));
+    }
+    expect(sampleThumbnail('NOPE')).toBeUndefined();
+  });
 });
+
+/** Ligand copies and waters, counted from the files with awk (distinct chain + residue number). */
+const HET: Record<string, { ligands: Record<string, number>; waters: number }> = {
+  '1CRN': { ligands: {}, waters: 0 },
+  '1UBQ': { ligands: {}, waters: 58 },
+  '1MBN': { ligands: { HEM: 1, OH: 1 }, waters: 0 },
+  '4HHB': { ligands: { HEM: 4, PO4: 2 }, waters: 221 },
+  '1EMA': { ligands: { CRO: 1 }, waters: 95 },
+  '1TIM': { ligands: {}, waters: 0 },
+  '1HSG': { ligands: { MK1: 1 }, waters: 127 },
+  '1BNA': { ligands: {}, waters: 80 },
+};
 
 describe.each(SAMPLES.map((s) => s.id))('bundled sample %s', (id) => {
   it('loads, parses, and matches the counts taken from the file', async () => {
@@ -55,6 +76,8 @@ describe.each(SAMPLES.map((s) => s.id))('bundled sample %s', (id) => {
     expect(info.residues).toBe(want.residues);
     expect(info.atoms).toBe(want.atoms);
     expect(info.hetAtoms).toBe(want.het);
+    expect(Object.fromEntries(info.ligands.map((l) => [l.resn, l.count]))).toEqual(HET[id].ligands);
+    expect(info.waters).toBe(HET[id].waters);
   });
 
   it('is the structure it claims to be', async () => {

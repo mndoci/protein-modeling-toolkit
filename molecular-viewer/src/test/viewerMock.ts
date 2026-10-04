@@ -14,6 +14,13 @@ export const viewerMock = {
   removeAllModels: vi.fn(),
   resize: vi.fn(),
   clear: vi.fn(),
+  setHoverable: vi.fn(),
+  setHoverDuration: vi.fn(),
+  pngURI: vi.fn(() => 'data:image/png;base64,AAAA'),
+  addSurface: vi.fn(() => Promise.resolve()),
+  removeAllSurfaces: vi.fn(),
 };
+
+export const SurfaceType = { VDW: 1, MS: 2, SAS: 3, SES: 4 } as const;
 
 export const createViewerMock = vi.fn((_el: unknown, _config?: unknown) => viewerMock);

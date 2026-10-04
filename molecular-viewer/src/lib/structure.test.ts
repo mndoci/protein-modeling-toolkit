@@ -122,6 +122,33 @@ describe('parsePdb edge cases', () => {
     expect(() => parsePdb('HEADER    NOTHING HERE\nEND\n')).toThrow(StructureParseError);
     expect(() => parsePdb('')).toThrow(/No atom records/);
   });
+
+  it('groups ligands by name and copy, and counts waters, leaving out selenomethionine', () => {
+    const text = [
+      atomLine('ATOM  ', 1, 'CA', 'GLY', 'A', 5),
+      atomLine('ATOM  ', 2, 'CA', 'ALA', 'A', 60),
+      atomLine('HETATM', 3, 'SE', 'MSE', 'A', 61),
+      atomLine('HETATM', 4, 'FE', 'HEM', 'A', 142),
+      atomLine('HETATM', 5, 'NA', 'HEM', 'A', 142),
+      atomLine('HETATM', 6, 'FE', 'HEM', 'B', 142),
+      atomLine('HETATM', 7, 'P', 'PO4', 'B', 200),
+      atomLine('HETATM', 8, 'O', 'HOH', 'A', 301),
+      atomLine('HETATM', 9, 'O', 'HOH', 'A', 302),
+    ].join('\n');
+    const info = parsePdb(text);
+    expect(info.ligands).toEqual([
+      { resn: 'HEM', count: 2 },
+      { resn: 'PO4', count: 1 },
+    ]);
+    expect(info.waters).toBe(2);
+    expect(info.residueRange).toEqual([5, 60]); // polymer only, not ligand numbers
+  });
+
+  it('has no residue range when there is no polymer', () => {
+    const info = parsePdb(atomLine('HETATM', 1, 'O', 'HOH', 'A', 1));
+    expect(info.residueRange).toBeNull();
+    expect(info.waters).toBe(1);
+  });
 });
 
 describe('parseCif', () => {
@@ -133,6 +160,26 @@ describe('parseCif', () => {
     expect(fromCif.residues).toBe(46);
     expect(fromCif.title).toBe('Converted fixture');
     expect(fromCif.format).toBe('cif');
+  });
+
+  it('reads ligand names from auth_comp_id', () => {
+    const cif = [
+      'data_X',
+      'loop_',
+      '_atom_site.group_PDB',
+      '_atom_site.auth_comp_id',
+      '_atom_site.auth_asym_id',
+      '_atom_site.auth_seq_id',
+      'ATOM GLY A 3',
+      'ATOM ALA A 9',
+      'HETATM HEM A 100',
+      'HETATM HOH A 200',
+      '#',
+    ].join('\n');
+    const info = parseCif(cif);
+    expect(info.ligands).toEqual([{ resn: 'HEM', count: 1 }]);
+    expect(info.waters).toBe(1);
+    expect(info.residueRange).toEqual([3, 9]);
   });
 
   it('handles quoted atom names, HETATM rows and skips later models', () => {

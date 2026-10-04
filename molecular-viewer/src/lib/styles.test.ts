@@ -3,12 +3,17 @@ import {
   CHAIN_COLORS,
   COLOR_SCHEMES,
   DEFAULT_DISPLAY,
+  LIGAND_ELEMENT_COLORS,
+  LIGAND_STICKS,
   NUCLEOTIDE_RESN,
   REPRESENTATIONS,
   SS_COLORS,
   buildStyle,
   buildStyleOps,
+  buildSurface,
   chainColor,
+  ligandColor,
+  spectrumColor,
   ssColor,
   type DisplayOptions,
 } from './styles';
@@ -66,11 +71,56 @@ describe('chainColor', () => {
   });
 });
 
+/** The 3Dmol style key a representation draws with; a surface sits over a cartoon. */
+const styleKey = (rep: string) => (rep === 'surface' ? 'cartoon' : rep);
+
+describe('spectrumColor', () => {
+  it('runs purple at the N terminus to red at the C terminus, like 3Dmol cartoons', () => {
+    const n = spectrumColor(0);
+    const c = spectrumColor(1);
+    expect(n).toMatch(/^#[0-9a-f]{6}$/);
+    // Purple: red and blue both well above green. Red: red dominant.
+    const rgb = (hex: string) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const [nr, ng, nb] = rgb(n);
+    expect(nr).toBeGreaterThan(ng);
+    expect(nb).toBeGreaterThan(ng);
+    const [cr, cg, cb] = rgb(c);
+    expect(cr).toBeGreaterThan(200);
+    expect(cg).toBeLessThan(120);
+    expect(cb).toBeLessThan(120);
+  });
+
+  it('clamps out-of-range fractions', () => {
+    expect(spectrumColor(-1)).toBe(spectrumColor(0));
+    expect(spectrumColor(2)).toBe(spectrumColor(1));
+  });
+});
+
+describe('ligandColor', () => {
+  it('uses grey carbons with red oxygen and blue nitrogen, case-insensitively', () => {
+    expect(ligandColor('C')).toBe(LIGAND_ELEMENT_COLORS.C);
+    expect(ligandColor('o')).toBe(LIGAND_ELEMENT_COLORS.O);
+    expect(ligandColor('Fe')).toBe(LIGAND_ELEMENT_COLORS.FE);
+  });
+
+  it('falls back to one colour for unknown or missing elements', () => {
+    expect(ligandColor('XX')).toBe(ligandColor(undefined));
+    expect(Object.values(LIGAND_ELEMENT_COLORS)).not.toContain(ligandColor('XX'));
+  });
+});
+
 describe('buildStyle', () => {
   it('maps each representation to the matching 3Dmol style key', () => {
     for (const rep of REPRESENTATIONS) {
-      expect(Object.keys(buildStyle(rep, 'chain'))).toEqual([rep]);
+      expect(Object.keys(buildStyle(rep, 'chain'))).toEqual([styleKey(rep)]);
     }
+  });
+
+  it('spells out rainbow colours outside cartoons, which 3Dmol cannot do itself', () => {
+    const style = buildStyle('stick', 'spectrum', [], [10, 20]);
+    expect(paint(style, 'stick', { resi: 10 })).toBe(spectrumColor(0));
+    expect(paint(style, 'stick', { resi: 15 })).toBe(spectrumColor(0.5));
+    expect(paint(style, 'stick', { resi: 20 })).toBe(spectrumColor(1));
   });
 
   it('draws a polished cartoon: oval cross-section, strand arrows, moderate thickness', () => {
@@ -92,18 +142,43 @@ describe('buildStyle', () => {
   });
 
   it('keeps representation-specific sizing alongside the colour', () => {
-    expect(buildStyle('stick', 'spectrum')).toEqual({ stick: { radius: 0.2, color: 'spectrum' } });
-    expect(buildStyle('sphere', 'spectrum')).toEqual({ sphere: { scale: 0.9, color: 'spectrum' } });
-    expect(buildStyle('line', 'spectrum')).toEqual({ line: { linewidth: 1, color: 'spectrum' } });
+    const fn = expect.any(Function);
+    expect(buildStyle('stick', 'chain')).toEqual({ stick: { radius: 0.2, colorfunc: fn } });
+    expect(buildStyle('sphere', 'chain')).toEqual({ sphere: { scale: 0.9, colorfunc: fn } });
+    expect(buildStyle('line', 'chain')).toEqual({ line: { linewidth: 1, colorfunc: fn } });
   });
 
   it('covers every combination', () => {
-    expect(REPRESENTATIONS.length * COLOR_SCHEMES.length).toBe(12);
+    expect(REPRESENTATIONS.length * COLOR_SCHEMES.length).toBe(15);
     for (const rep of REPRESENTATIONS) {
       for (const scheme of COLOR_SCHEMES) {
-        expect(buildStyle(rep, scheme)[rep]).toBeTypeOf('object');
+        expect(buildStyle(rep, scheme)[styleKey(rep)]).toBeTypeOf('object');
       }
     }
+  });
+});
+
+describe('buildSurface', () => {
+  it('is only drawn for the surface style', () => {
+    for (const rep of REPRESENTATIONS.filter((r) => r !== 'surface')) {
+      expect(buildSurface(opts({ representation: rep }))).toBeNull();
+    }
+  });
+
+  it('is a translucent polymer-only surface in the active colours', () => {
+    const s = buildSurface(opts({ representation: 'surface', colorScheme: 'chain' }), ['A', 'B'])!;
+    expect(s.sel).toEqual({ hetflag: false }); // ligands stay visible in their pockets
+    expect(s.style.opacity).toBeGreaterThan(0.5);
+    expect(s.style.opacity).toBeLessThan(1);
+    const color = (s.style.colorfunc as (a: object) => string)({ chain: 'B' });
+    expect(color).toBe(CHAIN_COLORS[1]);
+  });
+
+  it('rainbow-colours a surface across the residue range', () => {
+    const s = buildSurface(opts({ representation: 'surface', colorScheme: 'spectrum' }), [], [1, 101])!;
+    const color = s.style.colorfunc as (a: object) => string;
+    expect(color({ resi: 1 })).toBe(spectrumColor(0));
+    expect(color({ resi: 101 })).toBe(spectrumColor(1));
   });
 });
 
@@ -113,7 +188,7 @@ describe('buildStyleOps', () => {
       const [first] = buildStyleOps(opts({ representation: rep }));
       expect(first.mode).toBe('set');
       expect(first.sel).toEqual({});
-      expect(Object.keys(first.style)).toEqual([rep]);
+      expect(Object.keys(first.style)).toEqual([styleKey(rep)]);
     }
   });
 
@@ -125,11 +200,19 @@ describe('buildStyleOps', () => {
     expect(shown.style).toEqual({ sphere: { radius: 0.3, color: '#5aa9e6' } });
   });
 
-  it('layers ligands over the cartoon as ball-and-stick, leaving the cartoon in place', () => {
+  it('draws ligands over the cartoon as ball-and-stick in element colours', () => {
     const ligands = buildStyleOps(opts()).find((o) => o.sel.hetflag === true)!;
-    expect(ligands.mode).toBe('add'); // "add" keeps the cartoon on modified residues
-    expect(Object.keys(ligands.style).sort()).toEqual(['sphere', 'stick']);
+    expect(ligands.mode).toBe('set');
+    expect(ligands.style).toBe(LIGAND_STICKS);
     expect(ligands.sel).toEqual({ hetflag: true, not: { resn: ['HOH', 'WAT', 'DOD', 'MSE'] } });
+    expect(paint(ligands.style, 'stick', { elem: 'O' })).toBe(LIGAND_ELEMENT_COLORS.O);
+    expect(paint(ligands.style, 'sphere', { elem: 'N' })).toBe(LIGAND_ELEMENT_COLORS.N);
+  });
+
+  it('treats the surface style like a cartoon underneath', () => {
+    const cartoon = buildStyleOps(opts()).map((o) => [o.mode, o.sel]);
+    const surface = buildStyleOps(opts({ representation: 'surface' })).map((o) => [o.mode, o.sel]);
+    expect(surface).toEqual(cartoon);
   });
 
   it('does not treat selenomethionine or water as a ligand', () => {
@@ -143,9 +226,13 @@ describe('buildStyleOps', () => {
     expect(ops.some((o) => o.sel.hetflag === true)).toBe(false);
   });
 
-  it('in non-cartoon styles, clears ligands when off instead of adding a layer when on', () => {
-    const on = buildStyleOps(opts({ representation: 'stick' }));
-    expect(on.some((o) => o.sel.hetflag === true)).toBe(false); // stick already draws them
+  it('in non-cartoon styles, keeps the style but recolours ligands, and clears them when off', () => {
+    const on = buildStyleOps(opts({ representation: 'stick', colorScheme: 'chain' }));
+    const recolor = on.find((o) => o.sel.hetflag === true)!;
+    expect(recolor.mode).toBe('set');
+    expect(Object.keys(recolor.style)).toEqual(['stick']);
+    expect(recolor.style.stick).toMatchObject({ radius: 0.2 });
+    expect(paint(recolor.style, 'stick', { elem: 'C' })).toBe(LIGAND_ELEMENT_COLORS.C);
 
     const off = buildStyleOps(opts({ representation: 'stick', showLigands: false }));
     const clear = off.find((o) => o.sel.hetflag === true)!;

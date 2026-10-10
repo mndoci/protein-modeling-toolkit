@@ -11,7 +11,16 @@ tests and README, so you can install and use one without the others.
 | Tool | What it does | Tech |
 |------|--------------|------|
 | [`secondary-structure-analysis/`](secondary-structure-analysis/) | Command-line tool (`ssa`) that reads a PDB or mmCIF file and reports per-residue secondary structure (helix / sheet / coil) plus summary percentages. Pure-Python DSSP-style assignment -- no external binaries. | Python 3.9+, Biopython |
-| [`molecular-viewer/`](molecular-viewer/) | Browser-based 3D structure viewer. Load a file, fetch a PDB ID from RCSB, or open a bundled sample; switch between cartoon / stick / sphere / line and several color schemes; see chain, residue and atom counts. **[Live demo](https://main.d162l9aqc0o2mt.amplifyapp.com/)** | React, Vite, TypeScript, 3Dmol.js |
+| [`molecular-viewer/`](molecular-viewer/) | Browser-based 3D structure viewer. Open one of 8 bundled samples, fetch any PDB ID from RCSB, or drop in a `.pdb` / `.cif` file. Cartoon, stick, sphere, line and surface styles; colour by chain, secondary structure or rainbow; hover labels, a colour legend, light/dark mode, PNG export and shareable links. **[Live demo](https://main.d162l9aqc0o2mt.amplifyapp.com/)** | React, Vite, TypeScript, 3Dmol.js |
+
+### Molecular viewer: see it live
+
+The viewer runs at **[main.d162l9aqc0o2mt.amplifyapp.com](https://main.d162l9aqc0o2mt.amplifyapp.com/)**,
+redeployed from `main` on every push. Here it is showing hemoglobin (click the
+image to open this view). More screenshots are in the
+[viewer's README](molecular-viewer/README.md#screenshots).
+
+[![The molecular viewer showing hemoglobin (4HHB) coloured by chain, with a hover label and the chain legend](molecular-viewer/docs/screenshots/hemoglobin-hover-dark.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/?sample=4HHB)
 
 ## Quick start
 

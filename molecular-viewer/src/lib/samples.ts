@@ -17,7 +17,13 @@ export interface Sample {
   /** How the structure is displayed when the sample is loaded. */
   view: DisplayOptions;
   /** Optional initial turn so the structure is seen from its best side. */
-  rotation?: { angle: number; axis: 'x' | 'y' | 'z' };
+  rotation?: Rotation;
+}
+
+/** A turn in degrees about a model axis, named or given as a unit vector. */
+export interface Rotation {
+  angle: number;
+  axis: 'x' | 'y' | 'z' | { x: number; y: number; z: number };
 }
 
 const cartoon = (
@@ -72,8 +78,13 @@ export const SAMPLES: readonly Sample[] = [
     id: '1HSG',
     name: 'HIV-1 protease',
     tagline: 'Drug bound in the active site',
-    blurb: 'HIV-1 protease, a two-chain drug target with the inhibitor indinavir (sticks) bound between the chains. Rotate to find it.',
+    blurb: 'HIV-1 protease, a two-chain drug target with the inhibitor indinavir (sticks) bound in the cleft between the chains, under the two flaps.',
     view: cartoon('chain'),
+    // The textbook view: the two chains side by side, flaps on top, looking
+    // into the active-site cleft. Computed from the structure: the axis from
+    // the catalytic Asp25s to the Ile50 flap tips points up, and the view is
+    // along the inhibitor's long axis.
+    rotation: { angle: 173.9, axis: { x: 0.6855, y: -0.3796, z: -0.6213 } },
   },
   {
     id: '1BNA',

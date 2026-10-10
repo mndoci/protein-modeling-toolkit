@@ -9,6 +9,7 @@ export const viewerMock = {
   setBackgroundColor: vi.fn(),
   zoomTo: vi.fn(),
   rotate: vi.fn(),
+  zoom: vi.fn(),
   setView: vi.fn(),
   render: vi.fn(),
   removeAllModels: vi.fn(),

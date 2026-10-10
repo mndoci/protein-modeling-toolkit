@@ -154,6 +154,35 @@ describe('App', () => {
     expect(viewerMock.rotate).toHaveBeenCalledWith(90, 'x');
   });
 
+  it('turns HIV-1 protease to look into the cleft that holds the inhibitor', async () => {
+    const { user } = setup();
+    await loadSample(user, '1HSG');
+    expect(viewerMock.rotate).toHaveBeenCalledWith(173.9, { x: 0.6855, y: -0.3796, z: -0.6213 });
+  });
+
+  it('turns first, then fits, then zooms out to clear the display bar', async () => {
+    // jsdom lays nothing out, so give the stage and the display bar real boxes.
+    const rects: Record<string, Partial<DOMRect>> = {
+      stage: { left: 0, top: 61, right: 1300, bottom: 800 },
+      'display-bar': { left: 220, top: 737, right: 1080, bottom: 784 },
+    };
+    vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (this: Element) {
+      const key = Object.keys(rects).find((k) => this.classList.contains(k));
+      return { left: 0, top: 0, right: 0, bottom: 0, ...(key ? rects[key] : {}) } as DOMRect;
+    });
+    try {
+      const { user } = setup();
+      await loadSample(user, '1BNA');
+      const order = (fn: { mock: { invocationCallOrder: number[] } }) => fn.mock.invocationCallOrder.at(-1)!;
+      expect(order(viewerMock.rotate)).toBeLessThan(order(viewerMock.zoomTo));
+      expect(order(viewerMock.zoomTo)).toBeLessThan(order(viewerMock.zoom));
+      const [scale] = viewerMock.zoom.mock.lastCall as [number];
+      expect(scale).toBeCloseTo((739 - 2 * 75) / 739, 6);
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+
   it("replaces earlier view settings with the sample's own showcase view", async () => {
     const { user } = setup();
     await loadSample(user, '1CRN');

@@ -1,6 +1,8 @@
 import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react';
 import * as $3Dmol from '3dmol';
+import { fitBetweenPanels, measurePanels } from '../lib/framing';
 import { describeAtom, type HoverLabel, type HoveredAtom } from '../lib/hover';
+import type { Rotation } from '../lib/samples';
 import type { StructureFormat } from '../lib/structure';
 import { buildStyleOps, buildSurface, type DisplayOptions, type ResidueRange } from '../lib/styles';
 import { VIEWER_BACKGROUND, type Theme } from '../lib/theme';
@@ -12,7 +14,7 @@ export interface LoadedStructure {
   text: string;
   format: StructureFormat;
   /** Turn applied once after loading, before the first render. */
-  rotation?: { angle: number; axis: 'x' | 'y' | 'z' };
+  rotation?: Rotation;
 }
 
 /** What the rest of the app can ask of the viewer. */
@@ -38,13 +40,17 @@ interface Props {
 
 /**
  * Put the camera in its starting position: no leftover rotation from a
- * previous structure or from dragging, centred and zoomed to fit, then the
- * structure's own initial turn (if any).
+ * previous structure or from dragging, the structure's own initial turn (if
+ * any), then centred and zoomed to fit the space the floating panels leave.
  */
-function frame(viewer: Viewer, structure: LoadedStructure) {
+function frame(viewer: Viewer, structure: LoadedStructure, stage: Element | null | undefined) {
   viewer.setView([0, 0, 0, 0, 0, 0, 0, 1]);
-  viewer.zoomTo();
   if (structure.rotation) viewer.rotate(structure.rotation.angle, structure.rotation.axis);
+  viewer.zoomTo();
+  if (!stage) return;
+  const measured = measurePanels(stage);
+  const scale = fitBetweenPanels(measured.stage, measured.panels);
+  if (scale !== 1) viewer.zoom(scale);
 }
 
 /** Thin React wrapper around a 3Dmol.js WebGL viewer. */
@@ -129,7 +135,7 @@ export function MoleculeViewer({
         },
         () => setHover(null),
       );
-      frame(viewer, structure);
+      frame(viewer, structure, frameRef.current?.parentElement);
     }
     viewer.render();
   }, [structure]);
@@ -176,7 +182,7 @@ export function MoleculeViewer({
   useEffect(() => {
     const viewer = viewerRef.current;
     if (!viewer || !structure || resetSignal === 0) return;
-    frame(viewer, structure);
+    frame(viewer, structure, frameRef.current?.parentElement);
     viewer.render();
     // Only a new reset request should re-frame; a new structure frames itself.
   }, [resetSignal]);

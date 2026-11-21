@@ -29,3 +29,26 @@ jobs:
           pip install -e ".[dev]"
       - name: Run tests
         run: pytest -q
+
+  viewer:
+    name: viewer (Node 22)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: molecular-viewer
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: molecular-viewer/package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Run tests
+        run: npm test
+      - name: Build
+        run: npm run build

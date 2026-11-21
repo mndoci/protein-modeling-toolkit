@@ -157,9 +157,9 @@ molecular-viewer/
 - The info card counts **polymer** residues (ATOM records) and reports
   ligands and waters separately. For multi-model files (NMR
   ensembles) only the first model is counted.
-- Fetch by ID downloads the PDB-format file. Very large entries that RCSB only
-  publishes as mmCIF will show a "not available" message; download the `.cif`
-  from RCSB and upload it instead.
+- Fetch by ID downloads the PDB-format file. If RCSB has none (very large
+  entries are only published as mmCIF), it falls back to the `.cif` file
+  automatically. An unknown ID shows "No entry … on RCSB."
 - `npm run build` prints an `[EVAL]` warning. It comes from inside 3Dmol.js
   (its optional string-callback feature) and is not used by this app.
 - Coloring by secondary structure uses the HELIX/SHEET records in the file when

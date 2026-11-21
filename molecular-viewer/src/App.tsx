@@ -123,8 +123,8 @@ export default function App({ fetchImpl = fetch, initialSearch }: AppProps) {
     setBusy({ kind: 'fetch', label: `Fetching ${id.trim().toUpperCase()} from RCSB…` });
     setError(null);
     try {
-      const { id: pdb, text } = await fetchPdb(id, fetchImpl);
-      if (load(pdb, text, { kind: 'pdb', id: pdb }, pdb, `${pdb}.pdb`) && overrides) update(overrides);
+      const { id: pdb, text, format } = await fetchPdb(id, fetchImpl);
+      if (load(pdb, text, { kind: 'pdb', id: pdb }, pdb, `${pdb}.${format}`) && overrides) update(overrides);
     } catch (err) {
       setError((err as Error).message);
     } finally {

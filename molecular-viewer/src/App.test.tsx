@@ -557,6 +557,24 @@ describe('App', () => {
     expect(pickerButton()).toHaveTextContent('Choose a sample');
   });
 
+  it('fetches an mmCIF-only entry and shows the mmCIF chip', async () => {
+    const cif = ['data_X', 'loop_', '_atom_site.group_PDB', '_atom_site.id', '_atom_site.type_symbol',
+      '_atom_site.label_atom_id', '_atom_site.label_comp_id', '_atom_site.label_asym_id',
+      '_atom_site.label_seq_id', '_atom_site.Cartn_x', '_atom_site.Cartn_y', '_atom_site.Cartn_z',
+      'ATOM 1 C CA ALA A 1 0.0 0.0 0.0', '#'].join('\n');
+    const fetchImpl = vi.fn(async (url: RequestInfo | URL) =>
+      new Response(String(url).endsWith('.pdb') ? '' : cif, { status: String(url).endsWith('.pdb') ? 404 : 200 }),
+    );
+    const { user } = setup(fetchImpl);
+    await user.type(screen.getByLabelText('PDB ID from RCSB'), '4v6x');
+    await user.click(screen.getByRole('button', { name: 'Fetch' }));
+
+    await waitFor(() => expect(text('info-name')).toBe('4V6X'));
+    expect(fetchImpl).toHaveBeenLastCalledWith('https://files.rcsb.org/download/4V6X.cif', expect.anything());
+    expect(viewerMock.addModel).toHaveBeenCalledWith(cif, 'cif');
+    expect(screen.getByText('mmCIF')).toBeInTheDocument();
+  });
+
   it('submits the fetch form with Enter', async () => {
     const fetchImpl = vi.fn(async () => new Response(CRAMBIN, { status: 200 }));
     const { user } = setup(fetchImpl);
@@ -571,7 +589,7 @@ describe('App', () => {
     await user.type(screen.getByLabelText('PDB ID from RCSB'), '9ZZZ');
     await user.click(screen.getByRole('button', { name: 'Fetch' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(/No PDB-format file for 9ZZZ/);
+    expect(await screen.findByRole('alert')).toHaveTextContent('No entry 9ZZZ on RCSB.');
     expect(text('info-name')).toBe('Crambin');
 
     await user.click(screen.getByRole('button', { name: 'Dismiss error' }));

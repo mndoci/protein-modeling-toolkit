@@ -6,12 +6,12 @@ An interactive 3D protein structure viewer that runs in the browser. Part of the
 Built with React + Vite + TypeScript; rendering is done by
 [3Dmol.js](https://3dmol.org/) (WebGL).
 
-**Live demo: [main.d162l9aqc0o2mt.amplifyapp.com](https://main.d162l9aqc0o2mt.amplifyapp.com/)**.
+**Live demo: [foldscape.bio](https://foldscape.bio/)**.
 Open it to see the viewer running: pick a sample from the **Sample** menu, or
 fetch any PDB ID. It's hosted on AWS Amplify and rebuilt automatically on
 every push to `main`, so it always matches this branch.
 
-[![Hemoglobin (4HHB) coloured by chain in dark mode, with a hover label on a residue and the chain legend](docs/screenshots/hemoglobin-hover-dark.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/?sample=4HHB)
+[![Hemoglobin (4HHB) coloured by chain in dark mode, with a hover label on a residue and the chain legend](docs/screenshots/hemoglobin-hover-dark.png)](https://foldscape.bio/?sample=4HHB)
 
 ## Screenshots
 
@@ -19,9 +19,9 @@ Taken from the live demo. Click any image to open that view there.
 
 | | |
 |---|---|
-| [![The Sample menu open, listing the eight bundled structures with thumbnails](docs/screenshots/sample-menu-dark.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/) | [![HIV-1 protease (1HSG) as a see-through surface over the cartoon, with the inhibitor visible in the cleft](docs/screenshots/hiv-protease-surface-dark.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/?sample=1HSG&style=surface) |
+| [![The Sample menu open, listing the eight bundled structures with thumbnails](docs/screenshots/sample-menu-dark.png)](https://foldscape.bio/) | [![HIV-1 protease (1HSG) as a see-through surface over the cartoon, with the inhibitor visible in the cleft](docs/screenshots/hiv-protease-surface-dark.png)](https://foldscape.bio/?sample=1HSG&style=surface) |
 | **Sample menu:** eight bundled structures, each with a thumbnail and one line on what it shows. | **Surface style:** HIV-1 protease with its inhibitor bound in the cleft between the two chains. |
-| [![B-DNA (1BNA) double helix side-on in light mode, with base pairs as sticks](docs/screenshots/dna-light.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/?sample=1BNA) | [![The viewer on a phone-sized screen in dark mode, showing hemoglobin](docs/screenshots/phone-dark.png)](https://main.d162l9aqc0o2mt.amplifyapp.com/?sample=4HHB) |
+| [![B-DNA (1BNA) double helix side-on in light mode, with base pairs as sticks](docs/screenshots/dna-light.png)](https://foldscape.bio/?sample=1BNA) | [![The viewer on a phone-sized screen in dark mode, showing hemoglobin](docs/screenshots/phone-dark.png)](https://foldscape.bio/?sample=4HHB) |
 | **Light mode:** the B-DNA double helix, turned side-on. | **Phones:** the controls stack and the display bar scrolls sideways. |
 
 The top image shows the hover label (`Chain C · PHE 98 · α-helix`) and the

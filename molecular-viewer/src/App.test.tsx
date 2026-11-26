@@ -480,17 +480,96 @@ describe('App', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
-  it('ignores a second sample pick while one is still loading', async () => {
+  it('lets the latest sample pick win when two are made in a row', async () => {
     setup();
     fireEvent.click(pickerButton());
     fireEvent.click(screen.getByRole('option', { name: /^1UBQ / }));
     fireEvent.click(pickerButton());
     fireEvent.click(screen.getByRole('option', { name: /^4HHB / }));
-    await waitFor(() => expect(text('info-name')).toBe('Ubiquitin'));
-    // Give an (incorrectly) accepted second pick time to land.
+    await waitFor(() => expect(text('info-name')).toBe('Hemoglobin'));
+    // Give the superseded first pick time to (incorrectly) land.
     await act(() => new Promise((r) => setTimeout(r, 150)));
-    expect(text('info-name')).toBe('Ubiquitin');
+    expect(text('info-name')).toBe('Hemoglobin');
     expect(viewerMock.addModel).toHaveBeenCalledTimes(1);
+  });
+
+  describe('stalled and superseded loads', () => {
+    /** A fetch that never answers but rejects with AbortError when its signal fires, like the real one. */
+    function stalledFetch() {
+      return vi.fn(
+        (_url: unknown, init?: RequestInit) =>
+          new Promise<Response>((_resolve, reject) => {
+            init?.signal?.addEventListener('abort', () =>
+              reject(new DOMException('The operation was aborted.', 'AbortError')),
+            );
+          }),
+      ) as unknown as typeof fetch;
+    }
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it('times out a stalled fetch after 30 s, explains, and frees the controls', async () => {
+      vi.useFakeTimers({ shouldAdvanceTime: true });
+      const { user } = setup(stalledFetch());
+      await user.type(screen.getByLabelText('PDB ID from RCSB'), '1CRN');
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      expect(screen.getByRole('button', { name: 'Fetching…' })).toBeDisabled();
+
+      await act(() => vi.advanceTimersByTimeAsync(29_000));
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(1_500));
+
+      expect(await screen.findByRole('alert')).toHaveTextContent('RCSB did not respond for 1CRN. Try again.');
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeEnabled();
+      await loadSample(user, '1UBQ');
+    });
+
+    it('shows the file, not the late fetch result, when a file is opened during a fetch', async () => {
+      let finish!: (r: Response) => void;
+      const fetchImpl = vi.fn(() => new Promise<Response>((r) => (finish = r))) as unknown as typeof fetch;
+      const { user } = setup(fetchImpl);
+      await user.type(screen.getByLabelText('PDB ID from RCSB'), '1CRN');
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await user.upload(
+        screen.getByLabelText('Open file'),
+        new File([CRAMBIN], 'mine.pdb', { type: 'chemical/x-pdb' }),
+      );
+      await waitFor(() => expect(text('info-name')).toBe('mine.pdb'));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeEnabled();
+
+      finish(new Response(CRAMBIN, { status: 200 }));
+      await act(() => new Promise((r) => setTimeout(r, 50)));
+      expect(text('info-name')).toBe('mine.pdb');
+      expect(viewerMock.addModel).toHaveBeenCalledTimes(1);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    });
+
+    it('loads a sample picked during a fetch and shows no error for the superseded fetch', async () => {
+      const fetchImpl = stalledFetch();
+      const { user } = setup(fetchImpl);
+      await user.type(screen.getByLabelText('PDB ID from RCSB'), '1CRN');
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await loadSample(user, '1UBQ');
+
+      expect((fetchImpl as unknown as ReturnType<typeof vi.fn>).mock.calls[0][1].signal.aborted).toBe(true);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeEnabled();
+    });
+
+    it('cancels a fetch from the Cancel button without an error', async () => {
+      const { user } = setup(stalledFetch());
+      await user.type(screen.getByLabelText('PDB ID from RCSB'), '1CRN');
+      await user.click(screen.getByRole('button', { name: 'Fetch' }));
+      await user.click(screen.getByRole('button', { name: 'Cancel' }));
+      expect(screen.queryByRole('status')).not.toBeInTheDocument();
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Fetch' })).toBeEnabled();
+    });
   });
 
   describe('dark mode', () => {

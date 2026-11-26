@@ -31,6 +31,9 @@ import { applyTheme, getInitialTheme, saveTheme, type Theme } from './lib/theme'
 /** Refuse uploads larger than this; 3Dmol gets sluggish well before it. */
 const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
 
+/** Give up on an RCSB download that has gone quiet for this long. */
+const FETCH_TIMEOUT_MS = 30_000;
+
 interface Loaded {
   structure: LoadedStructure;
   info: StructureInfo;
@@ -65,6 +68,8 @@ export default function App({ fetchImpl = fetch, initialSearch }: AppProps) {
   const stageRef = useRef<HTMLElement>(null);
   const viewerRef = useRef<MoleculeViewerHandle>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  /** The load in progress, if any. Starting a new one aborts it, so the last request wins. */
+  const currentLoad = useRef<AbortController | null>(null);
   const ids = { file: useId(), pdb: useId() };
 
   useEffect(() => applyTheme(theme), [theme]);
@@ -110,42 +115,81 @@ export default function App({ fetchImpl = fetch, initialSearch }: AppProps) {
     }
   }
 
+  /** Supersede any load in flight. `isCurrent()` is false once a newer load has started or this one was cancelled. */
+  function startLoad() {
+    currentLoad.current?.abort();
+    const controller = new AbortController();
+    currentLoad.current = controller;
+    return { signal: controller.signal, abort: () => controller.abort(), isCurrent: () => currentLoad.current === controller };
+  }
+
+  function cancelLoad() {
+    currentLoad.current?.abort();
+    currentLoad.current = null;
+    setBusy(null);
+  }
+
   async function openFile(file: File) {
+    const { isCurrent } = startLoad();
+    setBusy(null);
     if (file.size > MAX_UPLOAD_BYTES) {
       setError(`${file.name} is larger than 50 MB.`);
       return;
     }
     const stem = file.name.replace(/\.[^.]+$/, '') || 'structure';
-    load(file.name, await file.text(), { kind: 'file' }, stem, file.name);
+    const text = await file.text();
+    if (isCurrent()) load(file.name, text, { kind: 'file' }, stem, file.name);
   }
 
   async function fetchById(id: string, overrides?: Partial<DisplayOptions>) {
-    setBusy({ kind: 'fetch', label: `Fetching ${id.trim().toUpperCase()} from RCSB…` });
+    const { signal, abort, isCurrent } = startLoad();
+    const label = id.trim().toUpperCase();
+    setBusy({ kind: 'fetch', label: `Fetching ${label} from RCSB…` });
     setError(null);
+    // Our own timer rather than AbortSignal.timeout: it needs no newer browser
+    // and lets us tell a timeout apart from a cancel.
+    let timedOut = false;
+    const timer = window.setTimeout(() => {
+      timedOut = true;
+      abort();
+    }, FETCH_TIMEOUT_MS);
     try {
-      const { id: pdb, text, format } = await fetchPdb(id, fetchImpl);
-      if (load(pdb, text, { kind: 'pdb', id: pdb }, pdb, `${pdb}.${format}`) && overrides) update(overrides);
+      const { id: pdb, text, format } = await fetchPdb(id, fetchImpl, signal);
+      if (isCurrent() && load(pdb, text, { kind: 'pdb', id: pdb }, pdb, `${pdb}.${format}`) && overrides) {
+        update(overrides);
+      }
     } catch (err) {
-      setError((err as Error).message);
+      if (timedOut && isCurrent()) setError(`RCSB did not respond for ${label}. Try again.`);
+      else if (isCurrent()) setError((err as Error).message);
+      // Otherwise a newer load or Cancel replaced this one: say nothing.
     } finally {
-      setBusy(null);
+      window.clearTimeout(timer);
+      if (isCurrent()) {
+        currentLoad.current = null;
+        setBusy(null);
+      }
     }
   }
 
   async function loadSample(s: Sample, overrides?: Partial<DisplayOptions>) {
+    const { isCurrent } = startLoad();
     setBusy({ kind: 'sample', label: `Loading ${s.id} ${s.name}…` });
     setError(null);
     try {
       const text = await loadSampleText(s.id);
+      if (!isCurrent()) return;
       // Switch to the sample's showcase view only if it actually loaded.
       const name = `${s.id} (${s.name})`;
       if (load(name, text, { kind: 'sample', id: s.id }, s.id, `${s.id}.pdb`, s.rotation)) {
         setDisplay({ ...s.view, ...overrides });
       }
     } catch (err) {
-      setError(`Could not load sample ${s.id}: ${(err as Error).message}`);
+      if (isCurrent()) setError(`Could not load sample ${s.id}: ${(err as Error).message}`);
     } finally {
-      setBusy(null);
+      if (isCurrent()) {
+        currentLoad.current = null;
+        setBusy(null);
+      }
     }
   }
 
@@ -269,10 +313,8 @@ export default function App({ fetchImpl = fetch, initialSearch }: AppProps) {
         <SamplePicker
           currentId={sample?.id ?? null}
           // Not disabled while loading: that would drop keyboard focus from the
-          // trigger right after a pick. A pick made mid-load is ignored instead.
-          onPick={(s) => {
-            if (!busy) void loadSample(s);
-          }}
+          // trigger right after a pick. A pick made mid-load replaces that load.
+          onPick={(s) => void loadSample(s)}
         />
 
         <form onSubmit={onFetch} className="search" role="search">
@@ -423,6 +465,11 @@ export default function App({ fetchImpl = fetch, initialSearch }: AppProps) {
             <p className="loading glass" role="status">
               <span className="spinner" aria-hidden="true" />
               {busy ? busy.label : 'Computing surface…'}
+              {busy?.kind === 'fetch' ? (
+                <button type="button" className="btn" onClick={cancelLoad}>
+                  Cancel
+                </button>
+              ) : null}
             </p>
           ) : null}
           <div aria-live="polite">{notice ? <p className="notice glass">{notice}</p> : null}</div>
